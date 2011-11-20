@@ -1,0 +1,15 @@
+--- This dist file is part of LuaDist project
+
+name = "luametrics"
+version = "0.1"
+
+desc = "LuaMetrics is a Lua source code metrics analyzer"
+author = "Ivan Šimko, Peter Kapec"
+license = "MIT"
+url = "https://github.com/LuaDist/luametrics"
+maintainer = "Peter Kapec"
+
+depends = {
+	"lua ~> 5.1",
+	"leg = 0.1.3 ",	-- needs exactly version 0.1.3 that supports LPeg 0.10
+}

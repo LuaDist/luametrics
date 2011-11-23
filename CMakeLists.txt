@@ -11,4 +11,4 @@ include ( dist.cmake )
 # Install all files and documentation
 install ( DIRECTORY src/metrics DESTINATION ${INSTALL_LMOD} )
 install_data ( README COPYRIGHT)
-install_doc ( doc/ )
+#install_doc ( doc/ )

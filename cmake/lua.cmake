@@ -1,5 +1,5 @@
 # LuaDist CMake utility library for Lua.
-# 
+#
 # Copyright (C) 2007-2012 LuaDist.
 # by David Manura, Peter Drahos
 # Redistribution and use of this file is allowed according to the terms of the MIT license.
@@ -30,11 +30,10 @@ endmacro ()
 
 # install_lua_executable ( target source )
 # Automatically generate a binary if srlua package is available
-# The application or its source will be placed into /bin 
-# If the application source did not have .lua suffix then it will be added
+# The application or its source will be placed into /bin
+# If the application source did have .lua suffix then it will be removed
 # USE: lua_executable ( sputnik src/sputnik.lua )
 macro ( install_lua_executable _name _source )
-  get_filename_component ( _source_name ${_source} NAME_WE )
   # Find srlua and glue
   find_program( SRLUA_EXECUTABLE NAMES srlua )
   find_program( GLUE_EXECUTABLE NAMES glue )
@@ -42,9 +41,10 @@ macro ( install_lua_executable _name _source )
   set ( _exe ${CMAKE_CURRENT_BINARY_DIR}/${_name}${CMAKE_EXECUTABLE_SUFFIX} )
   if ( NOT SKIP_LUA_WRAPPER AND SRLUA_EXECUTABLE AND GLUE_EXECUTABLE )
     # Generate binary gluing the lua code to srlua, this is a robuust approach for most systems
+    # Recommended, expecially for Windows systems
     add_custom_command(
       OUTPUT ${_exe}
-      COMMAND ${GLUE_EXECUTABLE} 
+      COMMAND ${GLUE_EXECUTABLE}
       ARGS ${SRLUA_EXECUTABLE} ${_source} ${_exe}
       DEPENDS ${_source}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -56,18 +56,22 @@ macro ( install_lua_executable _name _source )
     )
     # Install with run permissions
     install ( PROGRAMS ${_exe} DESTINATION ${INSTALL_BIN} COMPONENT Runtime)
-	# Also install source as optional resurce
-	install ( FILES ${_source} DESTINATION ${INSTALL_FOO} COMPONENT Other )
+    # Also install the source as optional component
+    install ( PROGRAMS ${_source} DESTINATION ${INSTALL_FOO}
+            RENAME ${_name}
+    	      COMPONENT Other
+    )
   else()
-    # Install into bin as is but without the lua suffix, we assume the executable uses UNIX shebang/hash-bang magic
+    # Install into bin as is, we assume the executable uses UNIX shebang
+    # NOTE: This approach is unsuitable for non UNIX systems
     install ( PROGRAMS ${_source} DESTINATION ${INSTALL_BIN}
-            RENAME ${_source_name}
+            RENAME ${_name}
             COMPONENT Runtime
     )
   endif()
 endmacro ()
 
-macro ( _lua_module_helper is_install _name ) 
+macro ( _lua_module_helper is_install _name )
   parse_arguments ( _MODULE "LINK;ALL_IN_ONE" "" ${ARGN} )
   # _target is CMake-compatible target name for module (e.g. socket_core).
   # _module is relative path of target (e.g. socket/core),
@@ -90,14 +94,14 @@ macro ( _lua_module_helper is_install _name )
     message ( FATAL_ERROR "no module sources specified" )
   endif ()
   list ( GET _MODULE_SRC 0 _first_source )
-  
+
   get_filename_component ( _ext ${_first_source} EXT )
   if ( _ext STREQUAL ".lua" )  # Lua source module
     list ( LENGTH _MODULE_SRC _len )
     if ( _len GREATER 1 )
       message ( FATAL_ERROR "more than one source file specified" )
     endif ()
-  
+
     set ( _module "${_module}.lua" )
 
     get_filename_component ( _module_dir ${_module} PATH )
@@ -107,7 +111,7 @@ macro ( _lua_module_helper is_install _name )
 
     if ( ${is_install} )
       install ( FILES ${_first_source} DESTINATION ${INSTALL_LMOD}/${_module_dir}
-                RENAME ${_module_filename} 
+                RENAME ${_module_filename}
                 COMPONENT Runtime
       )
     endif ()
@@ -124,7 +128,7 @@ macro ( _lua_module_helper is_install _name )
       list ( APPEND _lua_modules "${_thisname}"
              "${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_CFG_INTDIR}/${_module}" )
     endforeach ()
-   
+
     add_library( ${_target} MODULE ${_MODULE_SRC})
     target_link_libraries ( ${_target} ${LUA_LIBRARY} ${_MODULE_LINK} )
     set_target_properties ( ${_target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY

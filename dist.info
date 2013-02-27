@@ -1,0 +1,38 @@
+type = "x86_64"
+arch = "Ubuntu"
+author = "Ivan Šimko, Peter Kapec"
+depends = {
+[[lua ~> 5.1]],
+[[leg = 0.1.3 ]],
+}
+
+desc = "LuaMetrics is a Lua source code metrics analyzer"
+version = "0.1"
+maintainer = "Peter Kapec"
+files = {
+Runtime = {
+[[lib/lua/metrics/captures/functiontree.lua]],
+[[lib/lua/metrics/captures/infoflow.lua]],
+[[lib/lua/metrics/captures/halstead.lua]],
+[[lib/lua/metrics/captures/AST.lua]],
+[[lib/lua/metrics/captures/cyclomatic.lua]],
+[[lib/lua/metrics/captures/block.lua]],
+[[lib/lua/metrics/captures/statements.lua]],
+[[lib/lua/metrics/captures/LOC.lua]],
+[[lib/lua/metrics/luadoc/commentParser.lua]],
+[[lib/lua/metrics/luadoc/captures.lua]],
+[[lib/lua/metrics/rules.lua]],
+[[lib/lua/metrics/utils.lua]],
+[[lib/lua/metrics/init.lua]],
+}
+,
+Data = {
+[[share/luametrics/README]],
+[[share/luametrics/COPYRIGHT]],
+}
+,
+}
+
+license = "MIT"
+name = "luametrics"
+url = "https://github.com/LuaDist/luametrics"

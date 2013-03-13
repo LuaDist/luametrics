@@ -6,7 +6,7 @@
 local commentParser = require 'metrics.luadoc.commentParser'
 local utils = require 'metrics.utils'
 
-local io, table, pairs, type, print = io, table, pairs, type, print 
+local io, table, pairs, type, print,string = io, table, pairs, type, print,string 
 
 module ('metrics.luadoc.captures')
 
@@ -28,16 +28,17 @@ local function processFunction(comment, funcAST)
 	end
 
 	local result = commentParser.parse(comment)
-
 	if (result) then
+		funcAST.documented=1
 		for k,v in pairs(result) do
+			if (v.tag == 'comment') then
+				funcAST.comment =(funcAST.comment or '') ..  string.gsub(v.text,'.',string.upper,1) .. ' , ' 			
+			end
 			if (v.item == 'name') then 
 				name = v.text
-				break
 			end
 		end
-		
-	end				
+	end	
 	
 	local block = nil
 			
@@ -71,36 +72,46 @@ local function processAssign(comment, assignAST)
 	if (assignAST.tag ~= 'LocalAssign' and  assignAST.tag ~= 'Assign') then
 		return
 	end
-	
+
 	-- parse luadoc comment
 	local result = commentParser.parse(comment)
 
 	local ldoc_class = nil
 	local ldoc_name = nil
-
+	local commentflag = 0
+	local comment = ''
+		
 	if (result) then
 		for k,v in pairs(result) do
 			if (v.item == 'name') then
 				ldoc_name = v.text
 			end
+			if (v.tag == 'comment') then
+				comment =comment  ..  string.gsub(v.text,'.',string.upper,1) .. ' , '
+			end
+			
 			if (v.item == 'class') then
 				ldoc_class = v.text
 			end
 		end
 	end	
+
 		
 	if ldoc_class == 'table' and ldoc_name ~= nil then
 		local namelist = nil
 		local explist = nil
-		
+		local commentflag = 1
 		for k,v in pairs(assignAST.data) do
 			if (v.tag) == 'NameList' or (v.tag == 'VarList') then namelist = v end
 			if (v.tag) == 'ExpList' then explist = v end
+			
 		end			
 				
 		for k,v in pairs(namelist.data) do 			-- compare namelist ane explist values ... create resulting table
 			if (v.text == ldoc_name) then
-				stack_tables[v.text] = explist.data[k]
+			explist.data[k].documented = commentflag
+			explist.data[k].comment = comment
+			stack_tables[v.text] = explist.data[k]
 				break
 			end
 		end
@@ -121,13 +132,16 @@ captures = {
 		
 		for k,fun in pairs(data.metrics.functionDefinitions) do
 			local searchNode = fun
+	
 			if (fun.assignNode) then searchNode=fun.assignNode end
 			local comment = utils.getComment(searchNode)
+			fun.documented = 0
 			if (comment) then processFunction(comment, fun)	end	
 		end
 		
 		for k,tab in pairs(tabs) do
 			local comment = utils.getComment(tab)
+			tab.documented = 0
 			if (comment) then processAssign(comment, tab)	end	
 		end
 		
@@ -137,7 +151,6 @@ captures = {
 		
 		data.luaDoc_functions = stack_functions 
 		data.luaDoc_tables = stack_tables
-		
 		return data
 	end,
 	LocalAssign = function(data)

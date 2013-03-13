@@ -14,8 +14,10 @@ module ('metrics.luadoc.commentParser', package.seeall)
 -- @class table
 -- @name luadoc_rules
 luadoc_rules = {
-	[1] = (1 - lpeg.P'---')^0 * lpeg.P'---' * (lpeg.P( 1- lpeg.V'Item')^0 * lpeg.C(lpeg.V'Item'))^0,
-	Item = lpeg.P'-'^2 * lpeg.S' '^1 * lpeg.P'@' * lpeg.C(lpeg.V'ID') * lpeg.S' '^1 * lpeg.C((1 - lpeg.S'\n\r\t ')^1),
+[1] = (1 - lpeg.P'---')^0 * lpeg.P'---' * (lpeg.P( 1- lpeg.V'Interesting')^0 * lpeg.C(lpeg.V'Interesting'))^0,
+	Interesting =lpeg.P'-'^2 * lpeg.S' '^1 * (lpeg.C(lpeg.V'Item') + lpeg.C(lpeg.V'Desc')^0),
+	Desc = lpeg.C((1 - lpeg.S'\n\r\t@')^1),
+	Item =  lpeg.P'@' * lpeg.C(lpeg.V'ID') * lpeg.S' '^1 * lpeg.C((1 - lpeg.S'\n\r\t ')^1),
 	ID = scanner.IDENTIFIER,
 }
 
@@ -24,6 +26,9 @@ luadoc_rules = {
 -- @class table
 -- @name luadoc_captures
 luadoc_captures = {
+Desc = function(a,...)
+	return {tag='comment',text=a },...
+end,
 	Item = function(item, text)
 		return {tag='item', item=item, text=text}
 	end,

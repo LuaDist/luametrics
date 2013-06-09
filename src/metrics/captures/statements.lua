@@ -15,7 +15,8 @@ local moduleDefinitions = {}
 -- the idea in algorithm is almost the same as in metrics.captures.LOC
 -- only count the number of different statements
 
-
+---
+--% Function counts the return statements in function
 --autor: Peter Kosa
 local function countReturnStatements(node,statements)
 	if(node == nil)then return 0 end

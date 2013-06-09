@@ -1,6 +1,7 @@
 -------------------------------------------------------------------------------
 -- Interface for metrics module
 -- @release 2011/05/04, Ivan Simko
+-- @release 2013/04/04, Peter Kosa
 -------------------------------------------------------------------------------
 
 local lpeg = require 'lpeg'
@@ -23,6 +24,7 @@ local halstead_capt = require 'metrics.captures.halstead'
 local ftree_capt = require 'metrics.captures.functiontree'
 local stats_capt = require 'metrics.captures.statements'
 local cyclo_capt = require 'metrics.captures.cyclomatic'
+local document_metrics = require 'metrics.captures.document_metrics'
 
 module ("metrics")
 
@@ -39,8 +41,8 @@ grammar.pipe(ftree_capt.captures, halstead_capt.captures)
 grammar.pipe(ldoc_capt.captures, ftree_capt.captures)
 grammar.pipe(stats_capt.captures,ldoc_capt.captures)
 grammar.pipe(cyclo_capt.captures, stats_capt.captures)
-grammar.pipe(capture_table, cyclo_capt.captures)
-
+grammar.pipe(document_metrics.captures,cyclo_capt.captures)
+grammar.pipe(capture_table,document_metrics.captures)
 
 local lua = lpeg.P(grammar.apply(parser.rules, rules.rules, capture_table))
 local patt = lua / function(...) 
@@ -73,21 +75,63 @@ function doGlobalMetrics(file_metricsAST_list)
 	--- function declarations
 	local total_function_definitions = {}
 
+	local anonymouscounter=0   -- for naming anonymous functions
+	local anonymouscounterT = 0 -- for naming anonymous  tables
 	for filename, AST in pairs(file_metricsAST_list) do
 		for _, fun in pairs(AST.metrics.blockdata.fundefs) do
-		
+
 			-- edit to suit luadoc expectations
 			if (fun.tag == 'GlobalFunction' or fun.tag == 'LocalFunction' or fun.tag == 'Function') then
-				if (fun.isGlobal) then fun.fcntype = 'global' else fun.fcntype = 'local' end
-				fun.path = filename
-				table.insert(total_function_definitions, fun)
-			end
-			
+-- anonymous function type
+				if(fun.name=="#anonymous#")then
+					anonymouscounter=anonymouscounter+1
+					fun.name = fun.name .. anonymouscounter
+					fun.path = filename
+				elseif(fun.name:match("[%.%[]") or fun.isGlobal==nil)then
+-- table-field function type
+					fun.fcntype = 'table-field'
+				elseif (fun.isGlobal) then fun.fcntype = 'global' else fun.fcntype = 'local' end
+					fun.path = filename
+					table.insert(total_function_definitions, fun)
+			end	
 		end
 	end
-	table.sort(total_function_definitions, utils.compare_functions_by_name)
+	table.sort(total_function_definitions, utils.compare_functions_by_name)				
 	returnObject.functionDefinitions = total_function_definitions
 
+	
+-- ^ `tables` list of tables in files , concatenate luaDoc_tables and docutables	
+	local total_table_definitions = {}
+	local set = {}
+	for filename, AST in pairs(file_metricsAST_list) do
+
+	-- concatenate two tables by  Exp node tables
+		
+		for k,tabl in pairs(AST.luaDoc_tables) do
+			tabl.path=filename		
+			tabl.name = k
+			table.insert(total_table_definitions, tabl)
+			set[tabl] = true
+		end					
+		for k,tabl in pairs(AST.metrics.docutables) do
+			if(tabl.ttype=="anonymous")then
+				anonymouscounterT=anonymouscounterT+1
+			 	tabl.name = tabl.name .. anonymouscounterT
+			end
+			if (not tabl.Expnode) then
+			 	tabl.path = filename	
+				table.insert(total_table_definitions, tabl)
+			elseif(set[tabl.Expnode]~=true)then
+				tabl.path = filename	
+				table.insert(total_table_definitions, tabl)
+				set[tabl.Expnode] = true
+			end		
+		end
+ 	end	
+	returnObject.tables = total_table_definitions
+			
+	
+	
 	-- merge number of lines metrics
 	returnObject.LOC = {}
 	
@@ -189,7 +233,25 @@ function doGlobalMetrics(file_metricsAST_list)
 				table.insert(returnObject.moduleDefinitions, moduleRef)
 			end
 		end
-	end	
-	
+
+	end
+
+
+	--merge document metrics
+	returnObject.documentMetrics={}
+	for filename, AST in pairs(file_metricsAST_list) do
+		for name, count in pairs(AST.metrics.documentMetrics) do		
+			if( type(count)=="table")then
+				if not returnObject.documentMetrics[name] then returnObject.documentMetrics[name]={} end
+				for _,v in pairs(count) do	
+					table.insert(returnObject.documentMetrics[name],v)
+				end		
+			else 	
+				if not returnObject.documentMetrics[name] then returnObject.documentMetrics[name] = 0 end
+				returnObject.documentMetrics[name]=returnObject.documentMetrics[name]+count
+			end		
+		end
+	end		
+
 	return returnObject
 end

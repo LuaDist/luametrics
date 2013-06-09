@@ -3,7 +3,7 @@
 -- @release 2011/05/04 , Ivan Simko
 -------------------------------------------------------------------------------
 
-local pairs, table, type = pairs, table, type
+local pairs, table, type  = pairs, table, type
 
 module('metrics.utils')
 
@@ -78,7 +78,7 @@ end
 -- Search for nodes with tag 'Name' or 'Var' in nameList
 -- returns a table with nodes
 -- @param nameList node to be searched
--- @return table containing nodes
+-- @return table containing nodes 
 function getNamesFromNameList(nameList)
 	local names = {}
 	for i,j in pairs(nameList.data) do
@@ -127,7 +127,7 @@ end
 -------------------------------
 -- Match comment before given node, works using .parent property of AST node
 -- @param node search for comment for this node
--- @return comment as string or empty string
+-- @return comment as string or empty string, and number comment lines
 function getComment(node)
 	
 	local comment = ''
@@ -136,6 +136,7 @@ function getComment(node)
 	local order = node.order
 	local currNode = node
 	local comment_table = {}
+	local numberOfLines = 0
 	
 	while (true) do
 		while (order == 1 or order == 0) do
@@ -143,7 +144,7 @@ function getComment(node)
 			if (currNode == nil) then return nil end
 			order = currNode.order			
 		end	
-		
+
 		if (currNode.tag == 'STARTPOINT') then return nil end
 	
 		order = order - 1
@@ -155,6 +156,7 @@ function getComment(node)
 					if (type(v) == 'table') then
 						if (v.tag == 'COMMENT') then
 							comment = comment .. v.text .. '\n'
+							numberOfLines = numberOfLines + 1
 						end
 						fullIGNORED = fullIGNORED .. v.text
 					end
@@ -172,7 +174,7 @@ function getComment(node)
 	end
 	
 	if (comment == '') then comment = nil end
-	return comment, fullIGNORED
+	return comment, fullIGNORED,numberOfLines
 end
 
 -----------------------------

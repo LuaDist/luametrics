@@ -1,46 +1,79 @@
 -------------------------------------------------------------------------------
--- CommentParser - parser of Luadoc comments
+-- CommentParser - parser of Luadoc comments(and Explua comments starting with --- )
 -- @release 2011/05/04, Ivan Simko
+-- @release 2013/04/24, Peter Kosa
 -------------------------------------------------------------------------------
 
 local lpeg = require 'lpeg'
 local grammar = require 'leg.grammar'
 local scanner = require 'leg.scanner'
+local comments = require 'comments'
 
 module ('metrics.luadoc.commentParser', package.seeall)
 
 -------------------------------------------------
--- Rules for LuaDoc comment parsing
--- @class table
--- @name luadoc_rules
-luadoc_rules = {
-[1] = (1 - lpeg.P'---')^0 * lpeg.P'---' * (lpeg.P( 1- lpeg.V'Interesting')^0 * lpeg.C(lpeg.V'Interesting'))^0,
-	Interesting =lpeg.P'-'^2 * lpeg.S' '^1 * (lpeg.C(lpeg.V'Item') + lpeg.C(lpeg.V'Desc')^0),
-	Desc = lpeg.C((1 - lpeg.S'\n\r\t@')^1),
-	Item =  lpeg.P'@' * lpeg.C(lpeg.V'ID') * lpeg.S' '^1 * lpeg.C((1 - lpeg.S'\n\r\t ')^1),
-	ID = scanner.IDENTIFIER,
-}
-
--------------------------------------------------
--- Captures for lpeg LuaDoc comment parsing
--- @class table
--- @name luadoc_captures
-luadoc_captures = {
-Desc = function(a,...)
-	return {tag='comment',text=a },...
-end,
-	Item = function(item, text)
-		return {tag='item', item=item, text=text}
-	end,
-}
-
-local pattern = lpeg.P(grammar.apply(luadoc_rules, nil, luadoc_captures)) / function (...) return {...} end
-
--------------------------------------------------
--- Function for LuaDoc comment parsing.
+-- Function for LuaDoc comment parsing (and Explua comments starting with --- )
 -- @class function
 -- @name parse
 function parse(text)
-	local result = pattern:match(text)
+
+local result
+--^ `novy parser z modulu comments`
+--info converts new result table of comments parser to old form
+local t={}
+
+if(string.match(text,"^[%s]*%-%-%-"))then
+	for v in string.gmatch(text,"[^\n]+")do
+		-- print(v)
+			local minires =comments.Parse(v)
+				
+			if(minires and minires.style=="luadoc")then 
+				table.insert(t,v)
+				for key,val in pairs(minires) do
+					if(key~="style")then
+						if(key=="type" and val=="descr" )then
+							table.insert(t,minires.text)	
+							table.insert(t,{tag="comment",text=minires.text})
+						elseif(key=="type" and (val=="class" or val=="name") )then
+							table.insert(t,minires.name)	
+							table.insert(t,{tag="item",item=val,text=minires.name})
+						elseif(key=="type")then
+							table.insert(t,minires.text)	
+							table.insert(t,{tag="item",item=val,text=minires.name,textt=minires.text})
+						end
+
+					end
+				end
+			elseif(minires and minires.style=="explua")then
+				table.insert(t,v)
+				for key,val in pairs(minires) do
+					if(key~="style")then
+						if(key=="type" and val=="descr" )then
+							table.insert(t,minires.text)	
+							table.insert(t,{tag="comment",text=minires.text})
+						elseif(key=="type" and (val=="class" or val=="name") )then
+							table.insert(t,minires.name)	
+							table.insert(t,{tag="item",item=val,text=minires.name})
+						elseif(key=="type" and val=="table" )then
+							table.insert(t,"table")
+							table.insert(t,{text="table",item="class",tag="item"})	
+							table.insert(t,{text=minires.var,item="name",tag="item"})	
+							table.insert(t,{tag="comment",text=minires.text})
+						elseif(key=="type" and val=="tablefield")then
+							table.insert(t,"table")
+							table.insert(t,{text=minires.var,item="field",tag="item",textt=minires.text,table=minires.table})	
+						elseif(key=="type")then
+							table.insert(t,minires.text)	
+							table.insert(t,{tag="item",item=val,text=minires.name,textt=minires.text})
+						end
+
+					end
+				end
+			end
+
+	end
+	result=t
+end
+--v
 	return result
 end

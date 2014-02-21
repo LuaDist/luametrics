@@ -6,6 +6,7 @@
 local pairs, print, table = pairs, print, table
 
 local keys = (require 'metrics.rules').rules
+local utils = require 'metrics.utils'
 
 module ('metrics.captures.statements')
 
@@ -14,16 +15,51 @@ local moduleDefinitions = {}
 -- the idea in algorithm is almost the same as in metrics.captures.LOC
 -- only count the number of different statements
 
+---
+--% Function counts the return statements in function
+--autor: Peter Kosa
+local function countReturnStatements(node,statements)
+	if(node == nil)then return 0 end
+	
+	local count = 0
+	local k,v
+
+	for k,v in pairs(node)do
+		if( v.tag ~='GlobalFunction' and v.tag ~= 'LocalFunction' and v.tag ~= 'Function')then	
+			if(v.tag == 'keyword' and v.text == 'return')then 
+				count = count + 1
+				table.insert(statements["return"],v)
+			end
+ 			countReturnStatements(v.data,statements)
+		end
+
+	end
+	return 
+end
+
+
 local function countStatements(node)
 	local children = node.data
 	local moduleMetrics = nil
 	
 	local statements = {}
 	
+
+-- doplnil : Peter Kosa  
+--counts number of return points in function
+		if(node.tag == "GlobalFunction" or node.tag =="LocalFunction" or node.tag=="Function")then
+			local fbody = utils.searchForTagItem('FuncBody', node.data)
+			local fblock =  utils.searchForTagItem('Block', fbody.data)
+			
+			if (not statements["return"]) then statements["return"] = {} end
+			countReturnStatements(fblock.data,statements)
+		end
+----------------------		
+	
 	for _, child in pairs(children) do
 		
 		if (child.tag == 'Stat') then
-			local stat = child.data[1]
+			local stat = child.data[1]	
 			if (not statements[stat.tag]) then statements[stat.tag] = {} end
 			table.insert(statements[stat.tag], stat)
 			
@@ -51,14 +87,20 @@ local function countStatements(node)
 			for _, stat in pairs(stats) do
 				table.insert(statements[key], stat)
 				if (moduleMetrics) then 
-					if (not moduleMetrics[stat.tag]) then moduleMetrics[stat.tag] = {} end
-					table.insert(moduleMetrics[stat.tag], stat)
+-- modifikoval Peter Kosa,  aby v HTML tabulke : "Statement usage" nebolo slovo "keyword" ale "return"				
+					if(stat.tag == 'keyword' and stat.text == 'return') then
+						if (not moduleMetrics["return"]) then moduleMetrics["return"] = {} end
+						table.insert(moduleMetrics["return"], stat)
+					else
+						if (not moduleMetrics[stat.tag]) then moduleMetrics[stat.tag] = {} end
+						table.insert(moduleMetrics[stat.tag], stat)
+					end
 				end
 			end
 		end
 		
 	end
-	
+
 	if (node.metrics == nil) then node.metrics = {} end
 	node.metrics.statements = statements	
 end
@@ -73,9 +115,9 @@ captures = (function()
 	local new_table = {}
 	for key,value in pairs(keys) do
 		new_table[key] = function (data) 
-			countStatements(data)
-			return data 
-		end
+				countStatements(data)
+				return data 
+			end
 	end
 	
 	new_table[1] = function (node) 

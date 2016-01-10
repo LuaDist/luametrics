@@ -6,7 +6,7 @@
 local commentParser = require 'metrics.luadoc.commentParser'
 local utils = require 'metrics.utils'
 
-local io, table, pairs, type, print,string = io, table, pairs, type, print,string 
+local io, table, pairs, type, print,string = io, table, pairs, type, print,string
 
 module ('metrics.luadoc.captures')
 
@@ -19,7 +19,7 @@ local tabs = {}
 
 --
 -- process LuaDoc functions - checks for commented functions
-local function processFunction(comment, funcAST) 
+local function processFunction(comment, funcAST)
 	local name = nil
 
 	if (funcAST.name) then
@@ -38,17 +38,17 @@ local function processFunction(comment, funcAST)
 		if (result) then
 			funcAST.documented=1
 			for k,v in pairs(result) do
-				
+
 				if (v.tag == 'comment') then
 
-					funcAST.description =(funcAST.description or '') .. v.text .. ' ' 			
+					funcAST.description =(funcAST.description or '') .. v.text .. ' '
 				end
-				if (v.item == 'name') then 
+				if (v.item == 'name') then
 					name = v.text
 				end
 			end
-			funcAST.comment=(string.match(funcAST.description, "(.-%.)[%s\t]") or funcAST.description)
-		else 
+			funcAST.comment=(string.match(funcAST.description or '', "(.-%.)[%s\t]") or funcAST.description)
+		else
 			funcAST.comment = comment
 		end
 		if result == nil then
@@ -58,7 +58,7 @@ local function processFunction(comment, funcAST)
 	end
 	--end Peter Mendel
 	local block = nil
-			
+
 	for k, v in pairs(funcAST.data) do
 		if (v.tag == 'FuncBody') then
 			for i,j in pairs(v.data) do
@@ -70,7 +70,7 @@ local function processFunction(comment, funcAST)
 			break
 		end
 	end
-	
+
 	funcAST.metrics.blockdata 				= {}
 	funcAST.metrics.blockdata.locals 		= block.metrics.blockdata.locals
 	funcAST.metrics.blockdata.locals_total 	= block.metrics.blockdata.locals_total
@@ -78,14 +78,14 @@ local function processFunction(comment, funcAST)
 	funcAST.metrics.blockdata.read_upvalue 	= block.metrics.blockdata.read_upvalue
 	funcAST.metrics.blockdata.write_upvalue = block.metrics.blockdata.write_upvalue
 	funcAST.metrics.blockdata.execs 		= block.metrics.blockdata.execs
-	
+
 	if name then stack_functions[name] = funcAST end
 end
 
 --
 -- process LuaDoc assigns (tables) - checks for commented tables
-local function processAssign(comment, assignAST)	
-	
+local function processAssign(comment, assignAST)
+
 	if (assignAST.tag ~= 'LocalAssign' and  assignAST.tag ~= 'Assign') then
 		return
 	end
@@ -105,17 +105,17 @@ local function processAssign(comment, assignAST)
 				ldoc_name = v.text
 			end
 			if (v.tag == 'comment') then
-				description =(description or '') .. v.text .. ' ' 	
+				description =(description or '') .. v.text .. ' '
 			end
-			
+
 			if (v.item == 'class') then
 				ldoc_class = v.text
 			end
 		end
 		comment=(string.match(description, "(.-%.)[%s\t]") or description)
-	end	
+	end
 
-		
+
 	if ldoc_class == 'table' and ldoc_name ~= nil then
 		local namelist = nil
 		local explist = nil
@@ -123,19 +123,19 @@ local function processAssign(comment, assignAST)
 		for k,v in pairs(assignAST.data) do
 			if (v.tag) == 'NameList' or (v.tag == 'VarList') then namelist = v end
 			if (v.tag) == 'ExpList' then explist = v end
-			
-		end			
-				
+
+		end
+
 		for k,v in pairs(namelist.data) do 			-- compare namelist and explist values ... create result table
 			if (v.text == ldoc_name) then
 				explist.data[k].documented = commentflag
 				explist.data[k].description = description
 				explist.data[k].comment = comment
 				if(assignAST.tag == 'Assign')then
-					explist.data[k].ttype = 	''		--old: 'global' not sure, what if  
-														-- local newtable 
+					explist.data[k].ttype = 	''		--old: 'global' not sure, what if
+														-- local newtable
 														-- newtable = {}
-														--TODO set correct ttype -- see: captures/block.lua 
+														--TODO set correct ttype -- see: captures/block.lua
 				else
 					explist.data[k].ttype = 	'local'
 				end
@@ -143,7 +143,7 @@ local function processAssign(comment, assignAST)
 				break
 			end
 		end
-	end		
+	end
 end
 
 --------------------------------------------
@@ -154,47 +154,47 @@ captures = {
 	[1] = function(data)
 		stack_functions = {}
 		stack_tables = {}
-		
+
 		local k, fun, tab
-		
-		
+
+
 		for k,fun in pairs(data.metrics.functionDefinitions) do
 			local searchNode = fun
-	
+
 			if (fun.assignNode) then searchNode=fun.assignNode end
 --bug util.getComment function returns all comments and empty lines before the node,what if the first line isn't the luadoc-style comment (not starting with ---)
 			local comment = utils.getComment(searchNode)
 			fun.documented = 0
-			if (comment) then 
+			if (comment) then
 --? is this correct solution for bug above?
 				--added by Peter Mendel 05/2014
 				local diffcomment = comment
 				comment=string.match(comment,"%-%-%-.*")
-				
+
 				if(comment)then
-					processFunction(comment, fun)	
+					processFunction(comment, fun)
 				else
 					processFunction(diffcomment, fun)
 				end
-			end	
+			end
 			--end Peter Mendel
 		end
 		for k,tab in pairs(tabs) do
 			local comment = utils.getComment(tab)
 			tab.documented = 0
-			if (comment) then 
+			if (comment) then
 				comment=string.match(comment,"%-%-%-.*")
 				if(comment)then
-					 processAssign(comment, tab)	
+					 processAssign(comment, tab)
 				end
-			end	
+			end
 		end
-		
+
 		-- made work dith current luadoc taglet
 		funcs = {}
-		tabs = {}		
-		
-		data.luaDoc_functions = stack_functions 
+		tabs = {}
+
+		data.luaDoc_functions = stack_functions
 		data.luaDoc_tables = stack_tables
 		return data
 	end,

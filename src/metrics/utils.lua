@@ -74,6 +74,44 @@ function searchForTagItem_recursive(tagname, node, maxdepth)
 	return nil
 end
 
+-- Helper function for recursive search
+local function searchForTagArray_recursive_helper(tagname, node, maxdepth, tbl) 	
+	if (maxdepth ~= nil) then 
+    maxdepth = maxdepth -1 
+  end
+  
+  if (node.data == nil) then
+    return tbl
+  end
+    
+  for j,l in pairs(node.data) do
+      if (l.tag == tagname) then
+        table.insert(tbl or {}, l)
+      elseif (l.data ~= nil) then
+        if (maxdepth == nil or maxdepth > 0) then
+          tbl = searchForTagArray_recursive_helper(tagname, l, maxdepth, tbl)      
+        end
+      end    
+  end
+  return tbl
+end
+
+
+-- Recursive search for every node with specified tagname in children of specified node
+-- @param tagname the name of tag to be searched for
+-- @node node which children are searched
+-- @maxdepth number specifying the maximum depth the algorithm searches in, nil is equal to unlimited depth
+-- @return array of nodes or nil
+function searchForTagArray_recursive(tagname, node, maxdepth)
+	if (node == nil) then 
+    return nil 
+  end
+   
+  local tbl = searchForTagArray_recursive_helper(tagname, node, maxdepth, {})
+    
+  return tbl;
+end
+
 -----------------------------
 -- Search for nodes with tag 'Name' or 'Var' in nameList
 -- returns a table with nodes

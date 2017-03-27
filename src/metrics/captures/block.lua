@@ -900,7 +900,7 @@ captures = {
 		local backup_stack = {}
 		local remote_stack = block.metrics.blockdata.remotes
 		for k,v in pairs(remotes_stack) do
-			backup_stack[k] = {}			
+			backup_stack[k] = backup_stack[k] or {}			
 			table.insert(backup_stack[k], v)
 			endScopeOfVariable(remotes_stack, k, true)	
 		end	

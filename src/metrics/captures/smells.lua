@@ -88,7 +88,9 @@ local function countMI(file_metricsAST_list)
   for filename, AST in pairs(file_metricsAST_list) do
     
     files = files + 1
-    cyclomatic = cyclomatic + AST.metrics.cyclomatic.decisions_all
+    if(AST.metrics.cyclomatic ~= nil) then
+      cyclomatic = cyclomatic + (AST.metrics.cyclomatic.decisions_all or 0)
+    end
     halsteadVol = halsteadVol + AST.metrics.halstead.VOL
     LOSC = LOSC + AST.metrics.LOC.lines_code
     comments = comments + AST.metrics.LOC.lines_comment  
@@ -160,4 +162,9 @@ local captures = {
   
 }
 
-return {captures = captures, countFunctionSmells = countFileSmells, countMI = countMI, countFunctionSmells = countFunctionSmells}
+return {
+  captures = captures,
+  countFileSmells = countFileSmells,
+  countMI = countMI,
+  countFunctionSmells = countFunctionSmells
+}

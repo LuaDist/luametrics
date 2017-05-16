@@ -1,4 +1,4 @@
-local tablesCSS = require 'metrics.templates.css.smellTable'
+local tablesCSS = require 'metrics.templates.css'
 
 local function round(num)
 	
@@ -214,7 +214,6 @@ return {
 	createPieGraph = createPieGraph,
 	getSortedTable = getSortedTable,
 	drawFunctionTree = drawFunctionTree,
-	getPagesAndList = getPagesAndList,
 	round = round,
 	replaceSpecials = replaceSpecials,
 	addTableCSS = addTableCSS

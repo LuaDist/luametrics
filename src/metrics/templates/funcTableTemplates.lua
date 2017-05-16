@@ -1,5 +1,5 @@
 local utils = require 'metrics.templates.utils'
-local tablesCSS = require 'metrics.templates.css.smellTable'
+local tablesCSS = require 'metrics.templates.css'
 
 local function createFunctionTableList(metrics, definitions, withLink)
 	

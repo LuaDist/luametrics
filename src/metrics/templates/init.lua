@@ -2,7 +2,7 @@ local metrics = require 'metrics'
 
 local docTemplates = require 'metrics.templates.docMetricsTemplates'
 local smellTemplates = require 'metrics.templates.smellTemplates'
-local funcTableTemplate = require 'metrics.templates.funcTableTemplates'
+local funcTableTemplates = require 'metrics.templates.funcTableTemplates'
 
 local function readFile(_sFileName)
 
@@ -85,7 +85,18 @@ local function createASTAndMerge(fileList, directiories)
 
 end
 
+local function makeSomething(globalMetrics, filename)
+	
+	local file = io.open(filename, "w")
+
+	local output = funcTableTemplates.createFunctionTableList(globalMetrics, "functionDefinitions", false)
+	file:write(output)
+	file:close()
+
+end
+
 return {
-	createASTAndMerge = createASTAndMerge
+	createASTAndMerge = createASTAndMerge,
+	makeSomething = makeSomething
 }
 

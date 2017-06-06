@@ -1,0 +1,23 @@
+table.metric_index {
+	margin-left: 0px; margin-right: auto;
+	width: 300px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #cccccc;
+	border-collapse: collapse; }
+table.metric_index th {
+	background-color: #e7e7e7;
+	text-decoration: bold;
+	border-width: 1px;
+	padding: 3px;
+	border-style: solid;
+	border-color: #cccccc; }
+table.metric_index td {
+	border-width: 1px;
+	padding: 3px;
+	border-style: solid;
+	border-color: #cccccc;
+	padding-left: 10px;
+	padding-right: 10px; }
+table.metric_index td.name { background-color: #f0f0f0; }
+table.metric_index td.value { width: 100%; }

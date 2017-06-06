@@ -24,6 +24,7 @@ local halstead_capt = require 'metrics.captures.halstead'
 local ftree_capt = require 'metrics.captures.functiontree'
 local stats_capt = require 'metrics.captures.statements'
 local cyclo_capt = require 'metrics.captures.cyclomatic'
+local smells_capt = require 'metrics.captures.smells'
 local document_metrics = require 'metrics.captures.document_metrics'
 
 module ("metrics")
@@ -42,7 +43,8 @@ grammar.pipe(ldoc_capt.captures, ftree_capt.captures)
 grammar.pipe(stats_capt.captures,ldoc_capt.captures)
 grammar.pipe(cyclo_capt.captures, stats_capt.captures)
 grammar.pipe(document_metrics.captures,cyclo_capt.captures)
-grammar.pipe(capture_table,document_metrics.captures)
+grammar.pipe(smells_capt.captures, document_metrics.captures)
+grammar.pipe(capture_table,smells_capt.captures)
 
 local lua = lpeg.P(grammar.apply(parser.rules, rules.rules, capture_table))
 local patt = lua / function(...)
@@ -251,7 +253,17 @@ function doGlobalMetrics(file_metricsAST_list)
 				returnObject.documentMetrics[name]=returnObject.documentMetrics[name]+count
 			end
 		end
-	end
+	end		
+  
+  --merge code smells
+  returnObject.documentSmells = {}
+  returnObject.documentSmells.MI = smells_capt.countMI(file_metricsAST_list)
+  returnObject.documentSmells.functionSmells = smells_capt.countFunctionSmells(file_metricsAST_list)
+  returnObject.documentSmells.moduleSmells = {}
+  
+  for filename, AST in pairs(file_metricsAST_list) do
+    table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO})
+  end
 
 	return returnObject
 end

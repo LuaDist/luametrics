@@ -74,6 +74,44 @@ function searchForTagItem_recursive(tagname, node, maxdepth)
 	return nil
 end
 
+-- Helper function for recursive search
+local function searchForTagArray_recursive_helper(tagname, node, maxdepth, tbl) 	
+	if (maxdepth ~= nil) then 
+    maxdepth = maxdepth -1 
+  end
+  
+  if (node.data == nil) then
+    return tbl
+  end
+    
+  for j,l in pairs(node.data) do
+      if (l.tag == tagname) then
+        table.insert(tbl or {}, l)
+      elseif (l.data ~= nil) then
+        if (maxdepth == nil or maxdepth > 0) then
+          tbl = searchForTagArray_recursive_helper(tagname, l, maxdepth, tbl)      
+        end
+      end    
+  end
+  return tbl
+end
+
+
+-- Recursive search for every node with specified tagname in children of specified node
+-- @param tagname the name of tag to be searched for
+-- @node node which children are searched
+-- @maxdepth number specifying the maximum depth the algorithm searches in, nil is equal to unlimited depth
+-- @return array of nodes or nil
+function searchForTagArray_recursive(tagname, node, maxdepth)
+	if (node == nil) then 
+    return nil 
+  end
+   
+  local tbl = searchForTagArray_recursive_helper(tagname, node, maxdepth, {})
+    
+  return tbl;
+end
+
 -----------------------------
 -- Search for nodes with tag 'Name' or 'Var' in nameList
 -- returns a table with nodes
@@ -183,4 +221,28 @@ end
 -- @param function2 second function
 function compare_functions_by_name(function1, function2)
 	return function1.name<function2.name	
+end
+
+function getVariableCommonPoint(node, name)
+--	print ('looking for', node.nodeid, name)
+	local parent = node.parent
+	
+	while true do 
+		if parent == nill or parent.parent == nil then return node end
+		parent = parent.parent 
+		
+		if parent.tag == 'Block' then
+			for localname, occurences in pairs(parent.metrics.blockdata.locals) do
+--				print ('', occurences[1])
+				if occurences[1] == name then
+--					print ('', 'found', occurences[2][1], occurences[2][1].nodeid, occurences[2][1].text)
+					for k,v in pairs(occurences[2][1]) do
+--						print ('','',k,v)
+					end
+					return occurences[2][1]
+				end
+			end
+		end
+	end
+	
 end

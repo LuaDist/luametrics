@@ -12,4 +12,6 @@ include ( lua )
 # Install all files and documentation
 install ( DIRECTORY src/metrics DESTINATION ${INSTALL_LMOD} COMPONENT Runtime )
 install_data ( README COPYRIGHT )
+install_data ( share/ )
+install_data ( 3rdparty/ )
 #install_doc ( doc/ )

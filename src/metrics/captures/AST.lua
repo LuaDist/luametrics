@@ -18,6 +18,17 @@ local function processChildren(data)
 	end
 end
 
+local node_references = {}
+
+local id_generator = (function()
+	local id = 0;
+	return function(node)
+		id = id + 1
+		node_references[id] = node
+		return id
+	end
+end)()
+
 ----------------------------
 -- Table containing key values for each node type
 -- @class table
@@ -163,38 +174,47 @@ captures = (function()
 	for key,value in pairs(keys) do
 		new_table[key] = function (pos, s, ...) 
 			local data = {tag=value, key=key, data={...}, position=pos, text=s, str=s} 
+			data.nodeid = id_generator(data)
 			processChildren(data)
+			if (key == 1) then
+				data.nodeid_references = node_references
+			end
 			return data 
 		end
 	end
-	
+
 	-- set various node properties for easier manipulation later
 	new_table.GlobalFunction = function (pos, s, ...) local 
 		data = {tag='GlobalFunction', key='GlobalFunction', data={...}, name=utils.searchForTagItem('FuncName',{...}).text, position=pos, text=s, str=s}
+		data.nodeid = id_generator(data)
 		processChildren(data) 
 		return data 
 	end
 	
 	new_table.LocalFunction = function (pos, s, ...) 
 		local data = {tag='LocalFunction', key='LocalFunction', data={...}, name=utils.searchForTagItem('Name',{...}).text, position=pos, text=s, str=s} 
+		data.nodeid = id_generator(data)
 		processChildren(data) 
 		return data 
 	end
 	
 	new_table.Assign =  function (pos, s, ...) 
 		local data = {tag='Assign', key='Assign', data={...}, position=pos, text=s, str=s, nameList=utils.searchForTagItem('VarList',{...}), expList=utils.searchForTagItem('ExpList',{...})} 
+		data.nodeid = id_generator(data)
 		processChildren(data) 
 		return data 
 	end
 	
 	new_table.LocalAssign = function (pos, s, ...) 
 		local data = {tag='LocalAssign', key='LocalAssign', data={...}, position=pos, text=s, str=s, nameList=utils.searchForTagItem('NameList',{...}), expList=utils.searchForTagItem('ExpList',{...})} 
+		data.nodeid = id_generator(data)
 		processChildren(data) 
 		return data 
 	end
 	
 	new_table.LastStat = function (pos, s, ...) 
-		local data = {tag='LastStat', key='LastStat', data={...}, position=pos, text=s, str=s, expList=utils.searchForTagItem('ExpList',{...})} 
+		local data = {tag='LastStat', key='LastStat', data={...}, position=pos, text=s, str=s, expList=utils.searchForTagItem('ExpList',{...})}
+		data.nodeid = id_generator(data) 
 		processChildren(data) 
 		return data 
 	end

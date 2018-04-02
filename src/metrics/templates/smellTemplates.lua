@@ -126,6 +126,11 @@ local function createModuleTables(globalMetrics)
 		if(s.NOM > 40) then color = "ORANGE" count = count + 1 else color = "GREEN" end
 		smellTable = smellTable .. utils.addTableRow({"Number of methods", s.NOM}, false, color)
 
+		--Number of long lines
+		color = nil --Set background color if condition fits and add table row
+		if(#s.longLines > 3) then color = "ORANGE" count = count + 1 else color = "GREEN" end
+		smellTable = smellTable .. utils.addTableRow({"Number of long lines", #s.longLines}, false, color)
+
 		--If at least 2 conditions fits prints Error result with background set
 		if(count > 1) then
 			smellTable = smellTable .. utils.addTableRow({"Result", "Refactor!"}, false, "ORANGE")
@@ -172,6 +177,30 @@ local function createMITable(globalMetrics)
 	return smellTable
 
 end
+
+local function createLongLinesTable(globalMetrics)
+
+	--Create table header
+	local smellTable = utils.createTable("smell_table", {"File path", "Line number", "Length of line"})
+
+	for _, s in pairs(globalMetrics.documentSmells.moduleSmells) do
+		local color = nil
+
+		--Set background color according to value
+		--if(n.NOA > 10) then color = "RED" elseif(n.NOA >= 5) then color = "ORANGE" else color = "GREEN" end
+		color = "WHITE"
+		--smellTable = smellTable .. utils.addTableRow({n.file, n.name, n.NOA}, true, color)
+		for k,v in pairs(s.longLines) do
+			smellTable = smellTable .. utils.addTableRow({s.file, v.lineNumber, v.length}, false, color)
+		end
+	end
+
+	--Close table
+	smellTable = smellTable .. utils.closeTable()
+
+	return smellTable
+end
+
 
 --- Function creates a Bar graph presenting long method smell
 -- @param globalMetrics Global metrics of project
@@ -238,13 +267,31 @@ local function createManyParamsGraph(globalMetrics, withScript)
 
 end
 
+local function createLongLinesGraph(globalMetrics, withScript)
+	
+	local seriesData = ""
+	local xAxis = ""
+
+	--Loop to create series from data
+	for k, v in pairs(globalMetrics.documentSmells.moduleSmells) do
+		xAxis = xAxis .. "'" .. v.file .. "', " --Name of functions to x axis
+		seriesData = seriesData .. #v.longLines .. ", " --Count of long lines in file
+	end
+
+	--Create graph
+	return utils.createBarGraph('Count of long lines in modules', '', globalMetrics.documentSmells.functionSmells.totalFunctions, xAxis, 'Count of long lines', {'Count of long lines'}, {seriesData}, 2, 7, withScript)
+
+end
+
 return {
 	createLongMethodTable = createLongMethodTable,
 	createCycloTable = createCycloTable,
 	createManyParamsTable = createManyParamsTable,
 	createModuleTables = createModuleTables,
 	createMITable = createMITable,
+	createLongLinesTable = createLongLinesTable,
 	createLongMethodGraph = createLongMethodGraph,
 	createCycloGraph = createCycloGraph,
-	createManyParamsGraph = createManyParamsGraph
+	createManyParamsGraph = createManyParamsGraph,
+	createLongLinesGraph = createLongLinesGraph,
 }

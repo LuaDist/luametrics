@@ -1,6 +1,10 @@
 local math = require 'math'
+local rules = require 'metrics.rules'
 
 local pairs, print, table = pairs, print, table
+
+local maxLineLength = 100
+
 
 --- Function compares 2 table entries by LOSC
 -- @param functionA First table entry
@@ -146,6 +150,37 @@ local function countMI(file_metricsAST_list)
   
 end
 
+function lineSplit(string)
+        if sep == nil then
+                sep = "%s"
+        end
+        local table={} ; i=1
+        for str in string.gmatch(string, "([^\n]+)") do -- '+' is for skipping over empty lines
+                table[i] = str
+                i = i + 1
+        end
+        return table
+end
+
+-- da sa najst v astcku tabulka? mala by mat deti Field ?
+-- z nejakeho dovodu tu ukazuje 48 riadkov, vypis ma 47.. kratsi kod dal dobry vysledok
+local function lineLength(codeText)
+  local lines = lineSplit(codeText)
+
+-- TODO zapisat si cislo riadka, ktory je dlhy
+  local longLines = {}
+  for key, line in ipairs(lines) do
+    --print(key .. " Line length: " .. #line .. "  " .. line)
+    actualLineLength = #line
+    if(actualLineLength > maxLineLength) then
+      table.insert( longLines, { lineNumber = key, length = actualLineLength }) 
+    end
+  end
+
+  --print("Count of long lines: " .. #longLines)
+  return longLines
+end
+
 --- Function gets metrics from AST of file counts module smells and return them back to AST
 -- @param funcAST AST of file
 -- @author Martin Nagy
@@ -197,7 +232,9 @@ local function countFileSmells(funcAST)
   funcAST.smells.NOM = NOM
   funcAST.smells.responseToNOM = round((RFC / NOM), 2)
   funcAST.smells.CBO = CBO
-  
+  -- TODO pridane
+  funcAST.smells.longLines = lineLength(funcAST.text)
+
 end
 
 

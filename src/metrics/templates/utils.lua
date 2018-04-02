@@ -188,7 +188,7 @@ local function addTableRow(collumns, withLink, color)
 		start = 2
 	end
 
-		result = result .. "<td class='name' nowrap>" .. collumns[start] .. "</td>" --Name of the data in the row
+	result = result .. "<td class='name' nowrap>" .. collumns[start] .. "</td>" --Name of the data in the row
 
 	for i = start + 1, #collumns do --For each data entry create new collumn in table, with background set
 		result = result .. "<td class='value' bgcolor='" .. bg .. "'><center>" .. collumns[i] .. "</center></td>" 

@@ -34,6 +34,9 @@ lpeg.setmaxstack (400)
 
 local capture_table = {}
 
+local maxNesting = 3
+local maxTableFields = 5
+
 grammar.pipe(LOC_capt.captures, AST_capt.captures)
 grammar.pipe(block_capt.captures, LOC_capt.captures)
 grammar.pipe(infoflow_capt.captures, block_capt.captures)
@@ -61,6 +64,70 @@ function processText(code)
 	local result = patt:match(code)[1]
 
 	return result
+end
+
+-- TODO nenajde to fieldy, ktore nie su napisane v konstruktore, teda ak sa v kode vytvori novy element v tabulke
+function findParent(ast)
+	if(ast.key == "TableConstructor") then					
+			if(not ast.metrics.fieldsCount) then ast.metrics.fieldsCount = 0 end
+			ast.metrics.fieldsCount = ast.metrics.fieldsCount + 1
+			if(ast.metrics.fieldsCount > maxTableFields) then -- TODO test vypis sa vypise vzdy ked je pocet vacsi a najde sa field
+				print("Fields count of table \"" .. ast.parent.parent.parent.parent.data[3].data[1].text .. "\" is more than " .. maxTableFields .. ", refactor this table")
+			end
+		return
+	end
+
+	findParent(ast.parent)
+end
+
+
+function isFunction(key)
+	return (key == "Function" or key == "GlobalFunction" or key == "LocalFunction")
+end
+
+function recursive(ast, nestingLevel)
+
+	if(ast) then
+		if(ast.key == "Field") then -- bud ist od construktoru (parenta) rekurzivne dole a hladat fieldy, alebo hladat fieldy a ist hore po parenta
+			--print(ast.key)
+			findParent(ast)			
+		elseif (isFunction(ast.key)) then
+			--print(ast.name)
+			
+			if(ast.metrics == nil) then
+				ast.metrics = {}
+				print("metrics created")
+			end
+
+			nestingLevel = nestingLevel + 1
+			if(nestingLevel > maxNesting) then
+				print("Nesting level of function \"" .. ast.name .. "\" is more than " .. maxNesting .. ", refactor this function: ")
+			end
+		end
+	else
+		return
+	end
+
+	for key, child in pairs(ast.data) do
+		recursive(child, nestingLevel)
+	end
+
+end
+
+function tableFields(AST_list)
+
+	for file, ast in pairs(AST_list) do
+
+		recursive(ast, 0)
+
+		keys = {}
+	--	for k,v in pairs(ast.data[1]) do
+	--		table.insert( keys, k)
+	--	end
+		--print("--- START\n" .. value.text .. "\n --- END")
+	--	print(file .. " = { " .. table.concat(keys, ", ") .. " }\n")
+
+	end
 end
 
 ------------------------------------------------------------------------
@@ -260,10 +327,24 @@ function doGlobalMetrics(file_metricsAST_list)
   returnObject.documentSmells.MI = smells_capt.countMI(file_metricsAST_list) --Add maintainability index
   returnObject.documentSmells.functionSmells = smells_capt.countFunctionSmells(file_metricsAST_list) --Add function smells eg: LOC, cyclomatic, halstead etc.
   returnObject.documentSmells.moduleSmells = {} --Module smells sub-table
-  
+
+  tableFields(file_metricsAST_list)
+
   for filename, AST in pairs(file_metricsAST_list) do --Merge smells in modules to sub-table
-    table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO})
+    table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO, longLines = AST.smells.longLines})
   end
 
 	return returnObject
 end
+
+
+
+-- test vypis
+--[[ 
+keys = {}
+for k,v in pairs(node) do
+	table.insert( keys, k)
+end
+	--print("--- START\n" .. value.text .. "\n --- END")
+	print(node.position .. " = { " .. table.concat(keys, ", ") .. " }\n")
+--]]

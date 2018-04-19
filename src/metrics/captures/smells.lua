@@ -3,7 +3,7 @@ local rules = require 'metrics.rules'
 
 local pairs, print, table = pairs, print, table
 
-local maxLineLength = 100
+local maxLineLength = 80
 
 
 --- Function compares 2 table entries by LOSC
@@ -162,22 +162,17 @@ function lineSplit(string)
         return table
 end
 
--- da sa najst v astcku tabulka? mala by mat deti Field ?
--- z nejakeho dovodu tu ukazuje 48 riadkov, vypis ma 47.. kratsi kod dal dobry vysledok
 local function lineLength(codeText)
   local lines = lineSplit(codeText)
 
--- TODO zapisat si cislo riadka, ktory je dlhy
   local longLines = {}
   for key, line in ipairs(lines) do
-    --print(key .. " Line length: " .. #line .. "  " .. line)
     actualLineLength = #line
     if(actualLineLength > maxLineLength) then
       table.insert( longLines, { lineNumber = key, length = actualLineLength }) 
     end
   end
 
-  --print("Count of long lines: " .. #longLines)
   return longLines
 end
 

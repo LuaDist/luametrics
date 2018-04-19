@@ -331,14 +331,67 @@ local function drawFunctionTree(node, filepath)
 
 		--Add functions with links to documentation contained in file
 		result = result .. fun.fcntype .. "<a href='#|type=fileLink|to=" .. filepath .. "|from=functionlist/index.html|#" .. "#" ..
-			fun.name .. "'>" .. fun.name .. "</a><ul style='list-style-type: none;'>" ..
-			drawFunctionTree(fun, filepath, fileLink) .. "</ul></li>" --Trying to go one level deeper (submodule in module)
+				fun.name .. "'>" .. fun.name .. "</a><ul style='list-style-type: none;'>" ..
+				drawFunctionTree(fun, filepath, fileLink) .. "</ul></li>" --Trying to go one level deeper (submodule in module)
 
 	end
 
 	return result
 
 end
+
+local function drawParentTree(parents, filepath)
+
+	local result = ""
+	local endTags = ""
+
+	if(#parents == 0) then
+		return ""
+	end
+
+	result = result .. "<ul class='menulist' style='list-style-type: none;'><li><a href='#' class='toggler' onclick='$(this).next().slideToggle(); return false;'>[+]</a> " .. parents[#parents] .. " (nested in)"
+	endTags = "</li></ul>" .. endTags
+
+	for _ ,p in pairs(parents) do --Loop throung parents trees under project
+		result = result .. "<ul style='list-style-type: none; display:none;'><li>"
+		if(p ~= parents[#parents]) then
+			result = result .. "<a href='#' class='toggler' onclick='$(this).next().slideToggle(); return false;'>[+]</a>"
+		end
+		result = result .. p
+		endTags = "</li></ul>" .. endTags
+	end
+
+	result = result .. endTags
+
+	return result
+
+end
+--[[
+<ul class="menulist">
+<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
+		<a href="../files//src/bin/lua-plantuml.html"></a>
+	<ul style="display: block;">
+				<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
+		<a href="../files//src/bin/lua-plantuml.html">src</a>
+	<ul style="display: block;">
+				<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
+		<a href="../files//src/bin/lua-plantuml.html">bin</a>
+	<ul style="display: block;">
+				<li>
+		<a href="../files//src/bin/lua-plantuml.html">lua-plantuml.lua</a>
+	<ul style="display: none;">
+				</ul></li></ul></li><li><a href="#" class="toggler" onclick="return menu_toggle(this);">[+]</a> 
+		<a href="../files//src/luaplantuml/generate_uml.html">luaplantuml</a>
+	<ul style="display: none;">
+				<li>
+		<a href="../files//src/luaplantuml/generate_uml.html">generate_uml.lua</a>
+	<ul style="display: none;">
+				</ul></li><li>
+		<a href="../files//src/luaplantuml/init.html">init.lua</a>
+	<ul style="display: none;">
+				</ul></li></ul></li></ul></li></ul></li>
+</ul>
+--]]
 
 return {
 	createTable = createTable,
@@ -352,5 +405,6 @@ return {
 	replaceSpecials = replaceSpecials,
 	addTableCSS = addTableCSS,
 	readFile = readFile,
-	getjQuerryJS = getjQuerryJS
+	getjQuerryJS = getjQuerryJS,
+	drawParentTree = drawParentTree
 }

@@ -34,7 +34,8 @@ lpeg.setmaxstack (400)
 
 local capture_table = {}
 
-local maxNesting = 3
+local maxFunctionNesting = 2
+local maxTableNesting = 2
 local maxTableFields = 5
 
 grammar.pipe(LOC_capt.captures, AST_capt.captures)
@@ -66,18 +67,30 @@ function processText(code)
 	return result
 end
 
--- TODO nenajde to fieldy, ktore nie su napisane v konstruktore, teda ak sa v kode vytvori novy element v tabulke
-function findParent(ast)
+function findParent(ast, smellsTable)
 	if(ast.key == "TableConstructor") then					
-			if(not ast.metrics.fieldsCount) then ast.metrics.fieldsCount = 0 end
-			ast.metrics.fieldsCount = ast.metrics.fieldsCount + 1
-			if(ast.metrics.fieldsCount > maxTableFields) then -- TODO test vypis sa vypise vzdy ked je pocet vacsi a najde sa field
-				print("Fields count of table \"" .. ast.parent.parent.parent.parent.data[3].data[1].text .. "\" is more than " .. maxTableFields .. ", refactor this table")
+		if(ast.name == nil)then
+			ast.name = findTableName(ast.parent.parent.parent.parent)
+		end	
+		
+		if(not ast.metrics.fieldsCount) then ast.metrics.fieldsCount = 0 end
+
+		ast.metrics.fieldsCount = ast.metrics.fieldsCount + 1
+
+		if(ast.metrics.fieldsCount > maxTableFields) then
+			print("Fields count of table \"" .. ast.name .. "\" is more than " .. maxTableFields .. ", refactor this table")
+			if(not smellsTable.tableSmells.manyFields) then smellsTable.tableSmells.manyFields = {} end
+			if(not smellsTable.tableSmells.manyFields[ast.name]) then 
+				smellsTable.tableSmells.manyFields[ast.name] = {} 
+				if(not smellsTable.tableSmells.manyFields.count) then smellsTable.tableSmells.manyFields.count = 0 end
+				smellsTable.tableSmells.manyFields.count = smellsTable.tableSmells.manyFields.count + 1
 			end
+			smellsTable.tableSmells.manyFields[ast.name].count = ast.metrics.fieldsCount
+		end
 		return
 	end
 
-	findParent(ast.parent)
+	findParent(ast.parent, smellsTable)
 end
 
 
@@ -85,12 +98,46 @@ function isFunction(key)
 	return (key == "Function" or key == "GlobalFunction" or key == "LocalFunction")
 end
 
-function recursive(ast, nestingLevel)
+function copyParents(parentTable)
 
+	if(parentTable == nil) then
+		return
+	end
+
+	local newTable = {}
+
+	for k,v in pairs(parentTable) do
+		table.insert( newTable, k, v )
+	end
+
+	return newTable
+end
+
+function findTableName(ast)
+
+	local name = nil
+
+	for k,v in pairs(ast.data) do
+		if(v.key == "Name") then
+			return v.text
+		end
+
+		name = findTableName(v)
+		if(name) then
+			return name
+		end
+	end
+
+end
+
+function recursive(ast, functionNesting, tableNesting, smellsTable)
+
+	local insertedF = false
+	local insertedT = false
 	if(ast) then
-		if(ast.key == "Field") then -- bud ist od construktoru (parenta) rekurzivne dole a hladat fieldy, alebo hladat fieldy a ist hore po parenta
+		if(ast.key == "Field") then 
 			--print(ast.key)
-			findParent(ast)			
+			findParent(ast, smellsTable)			
 		elseif (isFunction(ast.key)) then
 			--print(ast.name)
 			
@@ -99,35 +146,80 @@ function recursive(ast, nestingLevel)
 				print("metrics created")
 			end
 
-			nestingLevel = nestingLevel + 1
-			if(nestingLevel > maxNesting) then
-				print("Nesting level of function \"" .. ast.name .. "\" is more than " .. maxNesting .. ", refactor this function: ")
+			ast.metrics.depth = functionNesting.level
+			table.insert(functionNesting.parents, ast.name)
+
+			if(functionNesting.level > maxFunctionNesting) then
+				print("Nesting level of FUNCTION \"" .. ast.name .. "\" is more than " .. maxFunctionNesting .. ", refactor this function: ")
+
+				if(not smellsTable.functionSmells[ast.name]) then 
+					if(not smellsTable.functionSmells.count) then smellsTable.functionSmells.count = 0 end
+					smellsTable.functionSmells.count = smellsTable.functionSmells.count + 1
+				end
+
+				smellsTable.functionSmells[ast.name] = { level = functionNesting.level, parents = copyParents(functionNesting.parents) }
 			end
+
+			functionNesting.level = functionNesting.level + 1
+			insertedF = true
+		elseif (ast.key == "TableConstructor") then
+			ast.metrics.depth = tableNesting.level
+			table.insert(tableNesting.parents, ast.name)	
+
+			if(ast.name == nil) then
+				ast.name = findTableName(ast.parent.parent.parent.parent)
+			end			
+			
+			if(tableNesting.level > maxTableNesting) then
+				print("Nesting level of TABLE \"" .. ast.name .. "\" is more than " .. maxTableNesting .. ", refactor this table: ")
+				if(not smellsTable.tableSmells.depth) then smellsTable.tableSmells.depth = {} end
+
+				if(not smellsTable.tableSmells.depth[ast.name]) then 
+					if(not smellsTable.tableSmells.depth.count) then smellsTable.tableSmells.depth.count = 0 end
+					smellsTable.tableSmells.depth.count = smellsTable.tableSmells.depth.count + 1
+				end
+
+				smellsTable.tableSmells.depth[ast.name] = { level = tableNesting.level, parents = copyParents(tableNesting.parents) }
+			end
+
+			tableNesting.level = tableNesting.level + 1	
+			insertedT = true
+
 		end
 	else
 		return
 	end
 
 	for key, child in pairs(ast.data) do
-		recursive(child, nestingLevel)
+		recursive(child, functionNesting, tableNesting, smellsTable)
+	end
+
+	if(insertedF) then
+		functionNesting.level = functionNesting.level - 1
+		functionNesting.parents[#functionNesting.parents] = nil -- remove last item
+	end
+
+	if(insertedT) then
+		tableNesting.level = tableNesting.level - 1
+		tableNesting.parents[#tableNesting.parents] = nil -- remove last item
 	end
 
 end
 
-function tableFields(AST_list)
+function smells(AST_list)
+
+	local result = {}
 
 	for file, ast in pairs(AST_list) do
 
-		recursive(ast, 0)
-
-		keys = {}
-	--	for k,v in pairs(ast.data[1]) do
-	--		table.insert( keys, k)
-	--	end
-		--print("--- START\n" .. value.text .. "\n --- END")
-	--	print(file .. " = { " .. table.concat(keys, ", ") .. " }\n")
+		local smellsTable = {tableSmells = {manyFields = {count = 0}, depth = {count = 0}}, functionSmells = {count = 0}}
+		recursive(ast, {level = 0, parents = {}}, {level = 0, parents = {}}, smellsTable)
+		table.insert(result, {file = file, smells = smellsTable})
 
 	end
+
+	return result
+
 end
 
 ------------------------------------------------------------------------
@@ -328,10 +420,13 @@ function doGlobalMetrics(file_metricsAST_list)
   returnObject.documentSmells.functionSmells = smells_capt.countFunctionSmells(file_metricsAST_list) --Add function smells eg: LOC, cyclomatic, halstead etc.
   returnObject.documentSmells.moduleSmells = {} --Module smells sub-table
 
-  tableFields(file_metricsAST_list)
+  returnObject.documentSmells.smellsTable = smells(file_metricsAST_list)
 
+
+--pozriet co treba indexovat v smellstable, co sa posiela do templates
   for filename, AST in pairs(file_metricsAST_list) do --Merge smells in modules to sub-table
-    table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO, longLines = AST.smells.longLines})
+    table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO, 
+															longLines = AST.smells.longLines })
   end
 
 	return returnObject
@@ -346,5 +441,5 @@ for k,v in pairs(node) do
 	table.insert( keys, k)
 end
 	--print("--- START\n" .. value.text .. "\n --- END")
-	print(node.position .. " = { " .. table.concat(keys, ", ") .. " }\n")
+	print(" { " .. table.concat(keys, ", ") .. " }\n")
 --]]

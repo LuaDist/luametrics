@@ -260,7 +260,7 @@ local function createFunctionDepthTable(globalMetrics)
 
 			if(type(v) == "table") then --variable is a table (count is not table)
 				if(v.parents) then -- if no parents, then no smell
-					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file)
+					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file, "function")
 				end
 			end
 		end
@@ -301,12 +301,32 @@ local function createTableDepthTable(globalMetrics)
 
 			if(type(v) == "table") then --variable is a table (count is not table)
 				if(v.parents) then -- if no parents, then no smell
-					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file)
+					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file, "Table")
 				end
 			end
 		end
 	
 	end
+
+	return smellTable
+
+end
+
+
+local function createUpvaluesTable(globalMetrics)
+
+	--Create table header
+	local smellTable = utils.createTable("smell_table", {"File path", "Function name", "Upvalue", "Number of uses"})	
+
+	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
+		for k, v in pairs(s.upvalues.info) do
+			color = "WHITE"
+			smellTable = smellTable .. utils.addTableRow({s.file, v.functionName, v.varName, v.usages}, true, color)			
+		end
+	end
+
+	--Close table
+	smellTable = smellTable .. utils.closeTable()
 
 	return smellTable
 
@@ -449,6 +469,22 @@ local function createTableDepthGraph(globalMetrics, withScript)
 end
 
 
+local function createUpvaluesGraph(globalMetrics, withScript)
+			
+	local seriesData = ""
+	local xAxis = ""
+
+	--Loop to create series from data	
+	for k, v in pairs(globalMetrics.documentSmells.smellsTable) do
+			xAxis = xAxis .. "'" .. v.file .. "', " --Name of functions to x axis
+			seriesData = seriesData .. #v.upvalues.info .. ", " --Count of tables with many fields in file
+				
+	end
+
+	--Create graph
+	return utils.createBarGraph('Count of variables with upvalue', '',  #globalMetrics.documentSmells.smellsTable , xAxis, 'Count of upvalues', {'Total variables with upvalue'}, {seriesData}, 5, 10, withScript)
+end
+
 return {
 	createLongMethodTable = createLongMethodTable,
 	createCycloTable = createCycloTable,
@@ -459,6 +495,7 @@ return {
 	createTablesWithManyFieldsTable = createTablesWithManyFieldsTable,
 	createFunctionDepthTable = createFunctionDepthTable,
 	createTableDepthTable = createTableDepthTable,
+	createUpvaluesTable = createUpvaluesTable,
 
 	createLongMethodGraph = createLongMethodGraph,
 	createCycloGraph = createCycloGraph,
@@ -467,4 +504,5 @@ return {
 	createTablesWithManyFieldsGraph = createTablesWithManyFieldsGraph,
 	createFunctionDepthGraph = createFunctionDepthGraph,
 	createTableDepthGraph = createTableDepthGraph,
+	createUpvaluesGraph = createUpvaluesGraph,
 }

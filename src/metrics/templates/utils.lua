@@ -340,7 +340,9 @@ local function drawFunctionTree(node, filepath)
 
 end
 
-local function drawParentTree(parents, filepath)
+local function drawParentTree(parents, filepath, prefix)
+
+	if(not prefix) then prefix = "" end
 
 	local result = ""
 	local endTags = ""
@@ -349,15 +351,16 @@ local function drawParentTree(parents, filepath)
 		return ""
 	end
 
-	result = result .. "<ul class='menulist' style='list-style-type: none;'><li><a href='#' class='toggler' onclick='$(this).next().slideToggle(); return false;'>[+]</a> " .. parents[#parents] .. " (nested in)"
+	result = result .. "<ul class='menulist' style='list-style-type: none;'><li><a href='#' class='toggler' onclick='return parent_toggle(this);'>[+]</a> " 
+			.. prefix .. " " .. parents[#parents] .. " is nested in:"
 	endTags = "</li></ul>" .. endTags
 
 	for _ ,p in pairs(parents) do --Loop throung parents trees under project
-		result = result .. "<ul style='list-style-type: none; display:none;'><li>"
+		result = result .. "<ul style='list-style-type: none; display:none;'><li> "
 		if(p ~= parents[#parents]) then
-			result = result .. "<a href='#' class='toggler' onclick='$(this).next().slideToggle(); return false;'>[+]</a>"
+			result = result .. "<a href='#' class='toggler' onclick='return parent_toggle(this);'>[+]</a> "
 		end
-		result = result .. p
+		result = result .. prefix .. " " .. p
 		endTags = "</li></ul>" .. endTags
 	end
 

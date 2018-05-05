@@ -91,6 +91,8 @@ end
 local function createModuleTables(globalMetrics)
 
 	local result = ""
+	local badCount = 0
+	local goodCount = 0
 
 	for _, s in pairs(globalMetrics.documentSmells.moduleSmells) do --Loop through modules
 
@@ -128,12 +130,43 @@ local function createModuleTables(globalMetrics)
 
 		--Number of long lines
 		color = nil --Set background color if condition fits and add table row
-		if(#s.longLines > 3) then color = "ORANGE" count = count + 1 else color = "GREEN" end
+		if(#s.longLines > 10) then color = "ORANGE" count = count + 1 else color = "GREEN" end
 		smellTable = smellTable .. utils.addTableRow({"Number of long lines", #s.longLines}, false, color)
 
+		for k,v in pairs(globalMetrics.documentSmells.smellsTable) do
+
+			if(v.file == s.file) then
+
+				--table with many fields
+				color = nil --Set background color if condition fits and add table row
+				if(v.smells.tableSmells.manyFields.count >= 1) then color = "ORANGE" count = count + 1 else color = "GREEN" end
+				smellTable = smellTable .. utils.addTableRow({"Number of tables with many fields", v.smells.tableSmells.manyFields.count}, false, color)
+
+				--function depth
+				color = nil --Set background color if condition fits and add table row
+				if(v.smells.functionSmells.count >= 1) then color = "ORANGE" count = count + 1 else color = "GREEN" end
+				smellTable = smellTable .. utils.addTableRow({"Number of functions with high nesting level", v.smells.functionSmells.count}, false, color)
+
+				--table depth
+				color = nil --Set background color if condition fits and add table row
+				if(v.smells.tableSmells.depth.count >= 1) then color = "ORANGE" count = count + 1 else color = "GREEN" end
+				smellTable = smellTable .. utils.addTableRow({"Number of tables with high nesting level", v.smells.tableSmells.depth.count}, false, color)
+
+				--upvlues
+				color = nil --Set background color if condition fits and add table row
+				if(#v.upvalues.info > 5) then color = "ORANGE" count = count + 1 badCount = badCount + 1 else color = "GREEN" goodCount = goodCount + 1 end
+				smellTable = smellTable .. utils.addTableRow({"Number of upvalues", #v.upvalues.info}, false, color)
+				
+
+			end
+
+		end
+
 		--If at least 2 conditions fits prints Error result with background set
-		if(count > 1) then
-			smellTable = smellTable .. utils.addTableRow({"Result", "Refactor!"}, false, "ORANGE")
+		if(count >= 5) then
+			smellTable = smellTable .. utils.addTableRow({"Result", "Refactor soon!"}, false, "RED")
+		elseif(count > 1) then			
+			smellTable = smellTable .. utils.addTableRow({"Result", "Refactor!"}, false, "ORANGE")		
 		else
 			smellTable = smellTable .. utils.addTableRow({"Result", "O.K."}, false, "GREEN")
 		end
@@ -147,6 +180,8 @@ local function createModuleTables(globalMetrics)
 
 	end
 
+	print("Bad: " .. badCount)
+	print("Good: " .. goodCount)
 	return result
 
 end
@@ -178,6 +213,10 @@ local function createMITable(globalMetrics)
 
 end
 
+--- Function creates a HTML template presenting long lines smell of file
+-- @param globalMetrics Global metrics of project
+-- @author Dominik Stevlik
+-- @return HTML template presenting long lines smell of file
 local function createLongLinesTable(globalMetrics)
 
 	--Create table header
@@ -191,7 +230,7 @@ local function createLongLinesTable(globalMetrics)
 		color = "WHITE"
 		--smellTable = smellTable .. utils.addTableRow({n.file, n.name, n.NOA}, true, color)
 		for k,v in pairs(s.longLines) do
-			if(v.length < 100) then color = "GREEN" elseif(v.length < 120) then color = "ORANGE" else color = "RED" end
+			if(v.length < 110) then color = "GREEN" elseif(v.length < 150) then color = "ORANGE" else color = "RED" end
 			smellTable = smellTable .. utils.addTableRow({s.file, v.lineNumber, v.length}, false, color)
 		end
 	end
@@ -202,26 +241,27 @@ local function createLongLinesTable(globalMetrics)
 	return smellTable
 end
 
+--- Function creates a HTML template presenting table with many fields smell of file
+-- @param globalMetrics Global metrics of project
+-- @author Dominik Stevlik
+-- @return HTML template presenting table with many fields smell of file
 local function createTablesWithManyFieldsTable(globalMetrics)
 
 	--Create table header
 	local smellTable = utils.createTable("smell_table", {"File path", "Table name", "Table fields"})
 
-
 	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
 		local color = nil
 
-		--Set background color according to value
-		--if(n.NOA > 10) then color = "RED" elseif(n.NOA >= 5) then color = "ORANGE" else color = "GREEN" end
+		--Set background color
 		color = "WHITE"
-
-	--	if(s.smells.tableSmells.manyFields.count > 0) then -- when smells were detected 	
-			for k,v in pairs(s.smells.tableSmells.manyFields) do
-				if( type(v) == "table") then --variable is a table (count is not table)	
-					smellTable = smellTable .. utils.addTableRow({s.file, k, v.count}, false, color)
-				end
+	
+		for k,v in pairs(s.smells.tableSmells.manyFields) do
+			if( type(v) == "table") then --variable is a table (count is not table)					
+				smellTable = smellTable .. utils.addTableRow({s.file, k, v.count}, false, color)
 			end
-	--	end
+		end
+
 	end
 
 	--Close table
@@ -231,6 +271,10 @@ local function createTablesWithManyFieldsTable(globalMetrics)
 
 end
 
+--- Function creates a HTML template presenting function depth smell of file
+-- @param globalMetrics Global metrics of project
+-- @author Dominik Stevlik
+-- @return HTML template presenting function depth smell of file
 local function createFunctionDepthTable(globalMetrics)
 
 	--Create table header
@@ -240,8 +284,7 @@ local function createFunctionDepthTable(globalMetrics)
 	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
 		local color = nil
 
-		--Set background color according to value
-		--if(n.NOA > 10) then color = "RED" elseif(n.NOA >= 5) then color = "ORANGE" else color = "GREEN" end
+		--Set background color 
 		color = "WHITE"
 	
 		for k,v in pairs(s.smells.functionSmells) do
@@ -254,13 +297,13 @@ local function createFunctionDepthTable(globalMetrics)
 	--Close table
 	smellTable = smellTable .. utils.closeTable()
 
+	-- create parent tree
 	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
-
 		for k,v in pairs(s.smells.functionSmells) do	
 
 			if(type(v) == "table") then --variable is a table (count is not table)
 				if(v.parents) then -- if no parents, then no smell
-					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file, "function")
+					smellTable = smellTable .. utils.drawParentTree(v.parents, "function")
 				end
 			end
 		end
@@ -271,6 +314,10 @@ local function createFunctionDepthTable(globalMetrics)
 
 end
 
+--- Function creates a HTML template presenting table depth smell of file
+-- @param globalMetrics Global metrics of project
+-- @author Dominik Stevlik
+-- @return HTML template presenting table depth smell of file
 local function createTableDepthTable(globalMetrics)
 
 	--Create table header
@@ -280,8 +327,7 @@ local function createTableDepthTable(globalMetrics)
 	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
 		local color = nil
 
-		--Set background color according to value
-		--if(n.NOA > 10) then color = "RED" elseif(n.NOA >= 5) then color = "ORANGE" else color = "GREEN" end
+		--Set background color 
 		color = "WHITE"
 
 		for k,v in pairs(s.smells.tableSmells.depth) do
@@ -295,13 +341,13 @@ local function createTableDepthTable(globalMetrics)
 	--Close table
 	smellTable = smellTable .. utils.closeTable()
 
+	-- create parent tree
 	for _, s in pairs(globalMetrics.documentSmells.smellsTable) do
-
 		for k,v in pairs(s.smells.tableSmells.depth) do	
 
 			if(type(v) == "table") then --variable is a table (count is not table)
 				if(v.parents) then -- if no parents, then no smell
-					smellTable = smellTable .. utils.drawParentTree(v.parents, s.file, "Table")
+					smellTable = smellTable .. utils.drawParentTree(v.parents, "Table")
 				end
 			end
 		end
@@ -313,6 +359,10 @@ local function createTableDepthTable(globalMetrics)
 end
 
 
+--- Function creates a HTML template presenting upvalues smell of file
+-- @param globalMetrics Global metrics of project
+-- @author Dominik Stevlik
+-- @return HTML template presenting upvalues smell of file
 local function createUpvaluesTable(globalMetrics)
 
 	--Create table header
@@ -398,6 +448,11 @@ local function createManyParamsGraph(globalMetrics, withScript)
 
 end
 
+--- Function creates a Bar graph presenting long lines smell
+-- @param globalMetrics Global metrics of project
+-- @param withLink If JavaScript script should be concated (May be used as standalone graph)
+-- @author Martin Nagy
+-- @return Bar graph presenting long lines smell
 local function createLongLinesGraph(globalMetrics, withScript)
 	
 	local seriesData = ""
@@ -414,6 +469,11 @@ local function createLongLinesGraph(globalMetrics, withScript)
 
 end
 
+--- Function creates a Bar graph presenting table with many fields smell
+-- @param globalMetrics Global metrics of project
+-- @param withLink If JavaScript script should be concated (May be used as standalone graph)
+-- @author Martin Nagy
+-- @return Bar graph presenting table with many fields smell
 local function createTablesWithManyFieldsGraph(globalMetrics, withScript)
 	
 	local seriesData = ""
@@ -432,6 +492,11 @@ local function createTablesWithManyFieldsGraph(globalMetrics, withScript)
 
 end
 
+--- Function creates a Bar graph presenting function depth smell
+-- @param globalMetrics Global metrics of project
+-- @param withLink If JavaScript script should be concated (May be used as standalone graph)
+-- @author Martin Nagy
+-- @return Bar graph presenting function depth smell
 local function createFunctionDepthGraph(globalMetrics, withScript)
 			
 	local seriesData = ""
@@ -441,7 +506,7 @@ local function createFunctionDepthGraph(globalMetrics, withScript)
 	for k, v in pairs(globalMetrics.documentSmells.smellsTable) do
 		if(v.smells.functionSmells) then -- when smells were detected
 			xAxis = xAxis .. "'" .. v.file .. "', " --Name of functions to x axis
-			seriesData = seriesData .. v.smells.functionSmells.count .. ", " --Count of tables with many fields in file
+			seriesData = seriesData .. v.smells.functionSmells.count .. ", " --Count of functions with high nesting level in file
 		end		
 	end
 
@@ -450,6 +515,11 @@ local function createFunctionDepthGraph(globalMetrics, withScript)
 
 end
 
+--- Function creates a Bar graph presenting table depth smell
+-- @param globalMetrics Global metrics of project
+-- @param withLink If JavaScript script should be concated (May be used as standalone graph)
+-- @author Martin Nagy
+-- @return Bar graph presenting table depth smell
 local function createTableDepthGraph(globalMetrics, withScript)
 		
 	local seriesData = ""
@@ -459,7 +529,7 @@ local function createTableDepthGraph(globalMetrics, withScript)
 	for k, v in pairs(globalMetrics.documentSmells.smellsTable) do
 		if(v.smells.tableSmells.depth) then -- when smells were detected
 			xAxis = xAxis .. "'" .. v.file .. "', " --Name of functions to x axis
-			seriesData = seriesData .. v.smells.tableSmells.depth.count .. ", " --Count of tables with many fields in file
+			seriesData = seriesData .. v.smells.tableSmells.depth.count .. ", " --Count of tables with high nesting level in file
 		end		
 	end
 
@@ -468,21 +538,26 @@ local function createTableDepthGraph(globalMetrics, withScript)
 
 end
 
-
+--- Function creates a Bar graph presenting upvalue smell
+-- @param globalMetrics Global metrics of project
+-- @param withLink If JavaScript script should be concated (May be used as standalone graph)
+-- @author Martin Nagy
+-- @return Bar graph presenting upvalue smell
 local function createUpvaluesGraph(globalMetrics, withScript)
 			
-	local seriesData = ""
+	local seriesData1 = ""
+	local seriesData2 = ""
 	local xAxis = ""
 
 	--Loop to create series from data	
 	for k, v in pairs(globalMetrics.documentSmells.smellsTable) do
 			xAxis = xAxis .. "'" .. v.file .. "', " --Name of functions to x axis
-			seriesData = seriesData .. #v.upvalues.info .. ", " --Count of tables with many fields in file
-				
+			seriesData1 = seriesData1 .. #v.upvalues.info .. ", " --Count of variables with upvalue in file
+			seriesData2 = seriesData2 .. v.upvalues.totalUsages .. ", " --Count of total usages of variables with upvalue in file
 	end
 
 	--Create graph
-	return utils.createBarGraph('Count of variables with upvalue', '',  #globalMetrics.documentSmells.smellsTable , xAxis, 'Count of upvalues', {'Total variables with upvalue'}, {seriesData}, 5, 10, withScript)
+	return utils.createBarGraph('Count of variables with upvalue', '',  (#globalMetrics.documentSmells.smellsTable) * 2 , xAxis, 'Count of upvalues', {"Total usages of variables with upvalue", 'Total variables with upvalue'}, {seriesData2,seriesData1}, 5, 10, withScript)
 end
 
 return {

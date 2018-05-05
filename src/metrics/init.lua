@@ -260,11 +260,9 @@ function doGlobalMetrics(file_metricsAST_list)
   returnObject.documentSmells.MI = smells_capt.countMI(file_metricsAST_list) --Add maintainability index
   returnObject.documentSmells.functionSmells = smells_capt.countFunctionSmells(file_metricsAST_list) --Add function smells eg: LOC, cyclomatic, halstead etc.
   returnObject.documentSmells.moduleSmells = {} --Module smells sub-table
-
   returnObject.documentSmells.smellsTable = smells_capt.getSmells(file_metricsAST_list)
 
 
---pozriet co treba indexovat v smellstable, co sa posiela do templates
   for filename, AST in pairs(file_metricsAST_list) do --Merge smells in modules to sub-table
     table.insert(returnObject.documentSmells.moduleSmells, {file = filename, RFC = AST.smells.RFC, WMC = AST.smells.WMC, NOM = AST.smells.NOM, responseToNOM = AST.smells.responseToNOM, CBO = AST.smells.CBO, 
 															longLines = AST.smells.longLines })
@@ -272,15 +270,3 @@ function doGlobalMetrics(file_metricsAST_list)
 
 	return returnObject
 end
-
-
-
--- test vypis
---[[ 
-keys = {}
-for k,v in pairs(node) do
-	table.insert( keys, k)
-end
---print("--- START\n" .. value.text .. "\n --- END")
-print(" { " .. table.concat(keys, ", ") .. " }\n")
---]]

@@ -340,7 +340,11 @@ local function drawFunctionTree(node, filepath)
 
 end
 
-local function drawParentTree(parents, filepath, prefix)
+--- Function creates a tree structure where nested function have function parent
+-- @param parents Table with parents of function
+-- @author Dominik Stevlik
+-- @return Tree structure created based function parents
+local function drawParentTree(parents, prefix)
 
 	if(not prefix) then prefix = "" end
 
@@ -369,32 +373,6 @@ local function drawParentTree(parents, filepath, prefix)
 	return result
 
 end
---[[
-<ul class="menulist">
-<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
-		<a href="../files//src/bin/lua-plantuml.html"></a>
-	<ul style="display: block;">
-				<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
-		<a href="../files//src/bin/lua-plantuml.html">src</a>
-	<ul style="display: block;">
-				<li><a href="#" class="toggler" onclick="return menu_toggle(this);">[-]</a> 
-		<a href="../files//src/bin/lua-plantuml.html">bin</a>
-	<ul style="display: block;">
-				<li>
-		<a href="../files//src/bin/lua-plantuml.html">lua-plantuml.lua</a>
-	<ul style="display: none;">
-				</ul></li></ul></li><li><a href="#" class="toggler" onclick="return menu_toggle(this);">[+]</a> 
-		<a href="../files//src/luaplantuml/generate_uml.html">luaplantuml</a>
-	<ul style="display: none;">
-				<li>
-		<a href="../files//src/luaplantuml/generate_uml.html">generate_uml.lua</a>
-	<ul style="display: none;">
-				</ul></li><li>
-		<a href="../files//src/luaplantuml/init.html">init.lua</a>
-	<ul style="display: none;">
-				</ul></li></ul></li></ul></li></ul></li>
-</ul>
---]]
 
 return {
 	createTable = createTable,

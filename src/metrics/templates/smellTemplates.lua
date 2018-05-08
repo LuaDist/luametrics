@@ -91,8 +91,6 @@ end
 local function createModuleTables(globalMetrics)
 
 	local result = ""
-	local badCount = 0
-	local goodCount = 0
 
 	for _, s in pairs(globalMetrics.documentSmells.moduleSmells) do --Loop through modules
 
@@ -154,7 +152,7 @@ local function createModuleTables(globalMetrics)
 
 				--upvlues
 				color = nil --Set background color if condition fits and add table row
-				if(#v.upvalues.info > 5) then color = "ORANGE" count = count + 1 badCount = badCount + 1 else color = "GREEN" goodCount = goodCount + 1 end
+				if(#v.upvalues.info > 5) then color = "ORANGE" count = count + 1 else color = "GREEN" end
 				smellTable = smellTable .. utils.addTableRow({"Number of upvalues", #v.upvalues.info}, false, color)
 				
 
@@ -180,8 +178,6 @@ local function createModuleTables(globalMetrics)
 
 	end
 
-	print("Bad: " .. badCount)
-	print("Good: " .. goodCount)
 	return result
 
 end

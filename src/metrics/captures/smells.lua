@@ -153,12 +153,15 @@ local function countMI(file_metricsAST_list)
   
 end
 
-function lineSplit(string)
+function lineSplit(text)
         if sep == nil then
                 sep = "%s"
         end
         local table={} ; i=1
-        for str in string.gmatch(string, "([^\n]+)") do -- '+' is for skipping over empty lines
+
+		text = string.gsub( text, "\t", "    ")
+
+        for str in string.gmatch(text, "([^\n]*)\n?") do -- '+' is for skipping over empty lines
                 table[i] = str
                 i = i + 1
         end

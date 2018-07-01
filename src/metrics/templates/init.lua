@@ -41,7 +41,7 @@ end
 function cutPathToSources(path, directiories)
 	
 	if(directiories == nil) then --If directory list not provided
-
+		
 		local index = string.find(path, "/[^/]*[[/].[^/]*]?$")
 		return string.sub(path, index) --Returns subpath of last directory and filename eg: /directory/file.lua
 
@@ -59,7 +59,7 @@ function cutPathToSources(path, directiories)
 			
 		end
 	end
-
+	
 	return path --If none of the directories contains file returns full path
 	
 end

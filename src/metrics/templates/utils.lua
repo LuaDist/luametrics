@@ -188,7 +188,7 @@ local function addTableRow(collumns, withLink, color)
 		start = 2
 	end
 
-		result = result .. "<td class='name' nowrap>" .. collumns[start] .. "</td>" --Name of the data in the row
+	result = result .. "<td class='name' nowrap>" .. collumns[start] .. "</td>" --Name of the data in the row
 
 	for i = start + 1, #collumns do --For each data entry create new collumn in table, with background set
 		result = result .. "<td class='value' bgcolor='" .. bg .. "'><center>" .. collumns[i] .. "</center></td>" 
@@ -331,10 +331,44 @@ local function drawFunctionTree(node, filepath)
 
 		--Add functions with links to documentation contained in file
 		result = result .. fun.fcntype .. "<a href='#|type=fileLink|to=" .. filepath .. "|from=functionlist/index.html|#" .. "#" ..
-			fun.name .. "'>" .. fun.name .. "</a><ul style='list-style-type: none;'>" ..
-			drawFunctionTree(fun, filepath, fileLink) .. "</ul></li>" --Trying to go one level deeper (submodule in module)
+				fun.name .. "'>" .. fun.name .. "</a><ul style='list-style-type: none;'>" ..
+				drawFunctionTree(fun, filepath, fileLink) .. "</ul></li>" --Trying to go one level deeper (submodule in module)
 
 	end
+
+	return result
+
+end
+
+--- Function creates a tree structure where nested function have function parent
+-- @param parents Table with parents of function
+-- @author Dominik Stevlik
+-- @return Tree structure created based function parents
+local function drawParentTree(parents, prefix)
+
+	if(not prefix) then prefix = "" end
+
+	local result = ""
+	local endTags = ""
+
+	if(#parents == 0) then
+		return ""
+	end
+
+	result = result .. "<ul class='menulist' style='list-style-type: none;'><li><a href='#' class='toggler' onclick='return parent_toggle(this);'>[+]</a> " 
+			.. prefix .. " " .. parents[#parents] .. " is nested in:"
+	endTags = "</li></ul>" .. endTags
+
+	for _ ,p in pairs(parents) do --Loop throung parents trees under project
+		result = result .. "<ul style='list-style-type: none; display:none;'><li> "
+		if(p ~= parents[#parents]) then
+			result = result .. "<a href='#' class='toggler' onclick='return parent_toggle(this);'>[+]</a> "
+		end
+		result = result .. prefix .. " " .. p
+		endTags = "</li></ul>" .. endTags
+	end
+
+	result = result .. endTags
 
 	return result
 
@@ -352,5 +386,6 @@ return {
 	replaceSpecials = replaceSpecials,
 	addTableCSS = addTableCSS,
 	readFile = readFile,
-	getjQuerryJS = getjQuerryJS
+	getjQuerryJS = getjQuerryJS,
+	drawParentTree = drawParentTree
 }
